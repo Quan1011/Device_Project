@@ -1,0 +1,46 @@
+  const [droneLocation, setDroneLocation] = useState(null);
+
+  useEffect(() => {
+
+    let intervalId;
+
+    const fetchDroneLocation = async () => {
+      try {
+        const response = await axios.get('http://localhost:3000/locate/drone-location');
+        console.log('Dữ liệu từ API:', response.data);
+        const {id, lat, lng } = response.data;
+
+        if (typeof lat === 'number' && typeof lng === 'number') {
+          if (Math.abs(lat) <= 90 && Math.abs(lng) <= 180) {
+            setDroneLocation({ id, lat, lng });
+          } else {
+            console.error('Invalid latitude or longitude data:', lat, lng);
+          }
+        } 
+      } catch (error) {
+          console.error(error);
+      }
+    };
+
+    fetchDroneLocation();
+    intervalId = setInterval(fetchDroneLocation, 3000);
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, []);
+
+
+  function openPopup(e) {
+    e.target.openPopup();      
+  }
+
+{droneLocation &&  (
+          <Marker position={[droneLocation.lat, droneLocation.lng]} eventHandlers={{ add: openPopup }}>
+            <Popup>
+              Id drone: {droneLocation.id}
+              <br></br>
+              Vị trí Drone: {droneLocation.lat}, {droneLocation.lng}
+            </Popup>
+          </Marker>
+        )}
