@@ -1,9 +1,10 @@
 import express from 'express';
-import { getDeviceTree, createDevice } from '../controllers/deviceController.js';
+import { getAllDevices, createDevice, getAllDevice } from '../controllers/deviceController.js';
 
 const router = express.Router();
 
-router.get('/device-tree', getDeviceTree);
-router.post('/devices', createDevice);
+router.get('/devices-tree', getAllDevices);
+router.get('/device-tree', getAllDevice);
+router.post('/device', createDevice);
 
 export default router;
