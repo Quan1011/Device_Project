@@ -6,6 +6,7 @@ import bodyParser from "body-parser";
 import cors from "cors";
 import authRouter from "./routes/auth.js"
 import deviceRoutes from './routes/deviceRoutes.js';
+import configRoutes from './routes/configRoutes.js';
 
 /* MONGOOSE SETUP */
 
@@ -51,6 +52,7 @@ app.listen(port, () => {
 // Routes
 app.use('/api/auth', authRouter);
 app.use('/api', deviceRoutes);
+app.use('/api', configRoutes);
 
 app.use((err, req, res, next) => {
   const statusCode = err.statusCode || 500;

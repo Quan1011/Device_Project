@@ -7,7 +7,8 @@ import { themeSettings } from "./theme"
 import Layout from "./scenes/Layout";
 import LogIn from "./scenes/LoginPage";
 import PrivateRoute from './components/PrivateRoute';
-import Notification from "./scenes/Notification";
+import Content from "./scenes/Content";
+import { TreeProvider } from './context/TreeContext';
 
 function App() {
   const mode = useSelector((state) => state.global.mode);
@@ -18,15 +19,17 @@ function App() {
       <BrowserRouter>
         <ThemeProvider theme={theme}>
           <CssBaseline />
-          <Routes>
-            <Route element={<PrivateRoute />}>
-              <Route element={<Layout />}>
-                <Route path="/" element={<Navigate to="/notification" replace />} />
-                <Route path="/notification" element={<Notification />} />
+          <TreeProvider>
+            <Routes>
+              <Route element={<PrivateRoute />}>
+                <Route element={<Layout />}>
+                  <Route path="/" element={<Navigate to="/content" replace />} />
+                  <Route path="/content" element={<Content />} />
+                </Route>
               </Route>
-            </Route>
-            <Route path="/login" element={<LogIn />} />
-          </Routes>
+              <Route path="/login" element={<LogIn />} />
+            </Routes>
+          </TreeProvider>
         </ThemeProvider>
       </BrowserRouter>
     </div>

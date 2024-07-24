@@ -3,7 +3,7 @@ import { Box, useMediaQuery } from "@mui/material";
 import { Outlet } from "react-router-dom";
 import { useSelector } from "react-redux";
 import Navbar from "../components/NavBar";
-import Sidebar from "../components/Sidebar";
+import Sidebar from "../components/CustomTreeView";
 import { useGetUserQuery } from "../redux/api";
 
 export default function Layout() {

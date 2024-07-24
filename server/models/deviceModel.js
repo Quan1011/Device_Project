@@ -5,6 +5,7 @@ const deviceSchema = new Schema({
     name: { type: String, required: true },
     parent_id: { type: String, ref: 'Device', default: null },
     isFolder: { type: Boolean, required: true },
+    config: { type: Schema.Types.ObjectId, ref: 'Config' }
     // children: { type: [mongoose.Schema.Types.ObjectId], ref: 'Device' }
 });
 
