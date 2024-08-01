@@ -2,7 +2,7 @@ import React, { useContext, useEffect, useState } from 'react';
 import Box from "@mui/material/Box";
 import { SimpleTreeView } from "@mui/x-tree-view/SimpleTreeView";
 import { TreeItem } from "@mui/x-tree-view/TreeItem";
-import { TextField, Container, Typography, IconButton, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button } from "@mui/material";
+import { TextField, Container, Typography, IconButton, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button, useTheme } from "@mui/material";
 import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
@@ -15,26 +15,26 @@ import { v4 as uuidv4 } from "uuid";
 import axios from "axios";
 import { TreeContext } from "../context/TreeContext";
 
-let globalId = null;
 
 export default function CustomTreeView() {
+  const theme = useTheme();
 
   const { setSelectedNode } = useContext(TreeContext);
 
-  const [treeData, setTreeData] = React.useState([]);
-  const [newNodeName, setNewNodeName] = React.useState("");
-  const [addingNode, setAddingNode] = React.useState(false);
-  const [isFolder, setIsFolder] = React.useState(false);
-  const [selectedNodeId, setSelectedNodeId] = React.useState(null);
-  const [selectedNodeIsFolder, setSelectedNodeIsFolder] = React.useState(false);
-  const [expandedItems, setExpandedItems] = React.useState([]);
-  const [confirmOpen, setConfirmOpen] = React.useState(false);
-  const [nodeToDelete, setNodeToDelete] = React.useState(null);
-  const [nodeToDeleteIsFolder, setNodeToDeleteIsFolder] = React.useState(false);
-  const [editingNode, setEditingNode] = React.useState(null);
-  const [editingNodeName, setEditingNodeName] = React.useState("");
+  const [treeData, setTreeData] = useState([]);
+  const [newNodeName, setNewNodeName] = useState("");
+  const [addingNode, setAddingNode] = useState(false);
+  const [isFolder, setIsFolder] = useState(false);
+  const [selectedNodeId, setSelectedNodeId] = useState(null);
+  const [selectedNodeIsFolder, setSelectedNodeIsFolder] = useState(false);
+  const [expandedItems, setExpandedItems] = useState([]);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [nodeToDelete, setNodeToDelete] = useState(null);
+  const [nodeToDeleteIsFolder, setNodeToDeleteIsFolder] = useState(false);
+  const [editingNode, setEditingNode] = useState(null);
+  const [editingNodeName, setEditingNodeName] = useState("");
 
-  React.useEffect(() => {
+  useEffect(() => {
     const fetchData = async () => {
       try {
         const response = await axios.get("http://localhost:3000/api/devices-tree");
@@ -58,7 +58,7 @@ export default function CustomTreeView() {
       return;
     }
     const newNode = {
-      id: '1',
+      id: uuidv4(),
       label: newNodeName,
       isFolder: isFolder,
     };
@@ -114,8 +114,6 @@ export default function CustomTreeView() {
   };
 
   const handleSelect = (event, nodeId) => {
-    globalId = nodeId;
-    console.log("nodeId:", nodeId)
     const findNode = (nodes, id) => {
       for (let node of nodes) {
         if (node.id === id) {
@@ -287,6 +285,7 @@ export default function CustomTreeView() {
                 onBlur={handleEditSubmit}
                 onKeyDown={handleKeyDown}
                 autoFocus
+                sx={{ color: theme.palette.text.primary }}
               />
             ) : (
               nodes.label
@@ -308,23 +307,27 @@ export default function CustomTreeView() {
   );
 
   return (
-    <Box component="nav" sx={{ marginTop: 8 }}>
-      <Container>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Custom TreeView
-          <IconButton onClick={() => handleAddClick(true)}>
-            <CreateNewFolderIcon />
-          </IconButton>
-          <IconButton onClick={() => handleAddClick(false)}>
-            <NoteAddIcon />
-          </IconButton>
-          <IconButton onClick={handleExpandAll}>
-            <AddCircleOutlineIcon />
-          </IconButton>
-          <IconButton onClick={handleCollapseAll}>
-            <RemoveCircleOutlineIcon />
-          </IconButton>
-        </Typography>
+    <Box component="nav" display="flex" width="28%" >
+      <Box sx={{width: '100%', height: '100vh', overflowY: 'auto', backgroundColor: theme.palette.background.alt, padding: 2, color: theme.palette.text.primary}}>
+        <Box sx={{ position: 'sticky', top: 0, backgroundColor: theme.palette.background.alt, zIndex: 1, paddingBottom: 1 }}>
+          <Typography variant="h2" component="h1" gutterBottom>
+            Device Manage
+          </Typography>
+          <Box>
+            <IconButton onClick={() => handleAddClick(true)} title="Add Address">
+              <CreateNewFolderIcon />
+            </IconButton>
+            <IconButton onClick={() => handleAddClick(false)} title="Add Device">
+              <NoteAddIcon />
+            </IconButton>
+            <IconButton onClick={handleExpandAll} title="Expand All">
+              <AddCircleOutlineIcon />
+            </IconButton>
+            <IconButton onClick={handleCollapseAll} title="Collapse All">
+              <RemoveCircleOutlineIcon />
+            </IconButton>
+          </Box>
+        </Box>
         {addingNode && (
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
             {isFolder ? <CreateNewFolderIcon /> : <NoteAddIcon />}
@@ -334,6 +337,7 @@ export default function CustomTreeView() {
               value={newNodeName}
               onChange={(e) => setNewNodeName(e.target.value)}
               onKeyDown={handleAddKeyDown}
+              sx={{ color: theme.palette.text.primary }}
             />
             <IconButton onClick={handleAddNode}>
               <CheckCircleIcon />
@@ -357,22 +361,22 @@ export default function CustomTreeView() {
           aria-labelledby="alert-dialog-title"
           aria-describedby="alert-dialog-description"
         >
-          <DialogTitle id="alert-dialog-title">{"Xác nhận xóa"}</DialogTitle>
+          <DialogTitle id="alert-dialog-title">{"Confirm delete"}</DialogTitle>
           <DialogContent>
             <DialogContentText id="alert-dialog-description">
-              {nodeToDeleteIsFolder ? "Bạn có muốn xóa folder này?" : "Bạn có muốn xóa thiết bị này?"}
+              {nodeToDeleteIsFolder ? "Are you sure you want to delete this folder?" : "Are you sure you want to delete this device?"}
             </DialogContentText>
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setConfirmOpen(false)} color="primary">
-              Hủy bỏ
+              Cancel
             </Button>
             <Button onClick={confirmDeleteNode} color="primary" autoFocus>
-              Đồng ý
+              Delete
             </Button>
           </DialogActions>
         </Dialog>
-      </Container>
+      </Box>
     </Box>
   );
 }

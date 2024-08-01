@@ -16,7 +16,7 @@ export default function LogIn()  {
   const [password, setPassword] = useState("");
   const currentUser = useSelector(state => state.user.currentUser);
   if (currentUser) {
-    return <Navigate to="/notification" replace />; // Chuyển hướng về trang chủ nếu đã đăng nhập
+    return <Navigate to="/content" replace />;
   }
 
   const handleChange = (e) => {
@@ -48,7 +48,7 @@ export default function LogIn()  {
         return;
       }
       dispatch(logInSuccess(data));
-      navigate('/notification');
+      navigate('/content');
     } catch (error) {
       dispatch(logInFailure(error.message));
     }

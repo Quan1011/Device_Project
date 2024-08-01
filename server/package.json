@@ -28,7 +28,7 @@
     "morgan": "^1.10.0",
     "mqtt": "^5.7.0",
     "mysql2": "^3.10.3",
-    "nodemon": "^3.1.0",
+    "nodemon": "^3.1.4",
     "react-helmet": "^6.1.0",
     "react-redux": "^9.1.2",
     "uuidv4": "^6.2.13",

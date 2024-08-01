@@ -3,7 +3,7 @@ import { createTheme } from "@mui/material/styles";
 import { useMemo } from "react";
 import { useSelector } from "react-redux";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
-import { themeSettings } from "./theme"
+import { themeSettings } from "./theme"; // Đảm bảo import đúng tên
 import Layout from "./scenes/Layout";
 import LogIn from "./scenes/LoginPage";
 import PrivateRoute from './components/PrivateRoute';
@@ -33,7 +33,7 @@ function App() {
         </ThemeProvider>
       </BrowserRouter>
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
