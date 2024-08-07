@@ -129,7 +129,7 @@ const Content = () => {
 
     try {
       const response = await axios.post(
-        "http://localhost:3000/api/device/:deviceId/config",
+        "http://localhost:3000/api/configs",
         newConfigWithDevice
       );
       setConfigs([...configs, response.data]);
@@ -151,7 +151,7 @@ const Content = () => {
   const confirmDeleteConfig = async () => {
     try {
       await axios.delete(
-        `http://localhost:3000/api/config/${dialogState.deletingConfig._id}`
+        `http://localhost:3000/api/configs/${dialogState.deletingConfig._id}`
       );
       setConfigs(
         configs.filter(
@@ -167,7 +167,7 @@ const Content = () => {
   const handleSaveConfig = async () => {
     try {
       const response = await axios.put(
-        `http://localhost:3000/api/config/${dialogState.editingConfig._id}`,
+        `http://localhost:3000/api/configs/${dialogState.editingConfig._id}`,
         editedConfig
       );
       setConfigs(
@@ -247,7 +247,7 @@ const Content = () => {
   const debouncedUpdateConfig = useCallback(
     debounce(async (configId, name, value) => {
       try {
-        await axios.put(`http://localhost:3000/api/config/${configId}`, {
+        await axios.put(`http://localhost:3000/api/configs/${configId}`, {
           [name]: value,
         });
       } catch (error) {
