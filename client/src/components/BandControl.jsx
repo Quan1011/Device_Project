@@ -14,6 +14,8 @@ const BandControl = ({ config, onEdit, onDelete, onSliderChange, onApply }) => {
   const theme = useTheme();
   const bandName = config.band ? config.band : "Unnamed Band";
 
+  const isPowerZero = config.currentPower === 0;
+
   return (
     <Box
       border={1}
@@ -21,10 +23,13 @@ const BandControl = ({ config, onEdit, onDelete, onSliderChange, onApply }) => {
       borderColor={theme.palette.primary.main}
       p={2}
       m={1}
-      bgcolor={theme.palette.background.paper}
+      bgcolor={isPowerZero ? theme.palette.grey[800] : theme.palette.background.paper}
+      sx={{
+        transition: "background-color 0.3s",
+        filter: isPowerZero ? "brightness(0.8)" : "brightness(1)",
+      }}
     >
       <Box display="flex" justifyContent="space-between" alignItems="center">
-        {/* <Typography variant="h6">{bandName}</Typography> */}
         <Box>
           <IconButton color="primary" onClick={() => onEdit(config)}>
             <EditIcon />
@@ -48,6 +53,8 @@ const BandControl = ({ config, onEdit, onDelete, onSliderChange, onApply }) => {
             step={1}
             aria-labelledby="frequency-slider"
             sx={{ color: theme.palette.primary.main, marginRight: "20px" }}
+            valueLabelDisplay="auto"
+            valueLabelFormat={(value) => `${value} MHz`}
           />
           <Typography>{`${config.maxFrequency} MHz`}</Typography>
         </Box>
@@ -88,7 +95,7 @@ const BandControl = ({ config, onEdit, onDelete, onSliderChange, onApply }) => {
       </Box>
       <Box display="flex" justifyContent="center">
         <Button
-          onClick={() => onApply(config)} // Gọi hàm onApply với config hiện tại
+          onClick={() => onApply(config)}
           sx={{ backgroundColor: theme.palette.primary.main, color: "white" }}
         >
           Apply
