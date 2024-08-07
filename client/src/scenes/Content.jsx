@@ -3,256 +3,283 @@ import {
   Box,
   Button,
   Typography,
-  Grid,
-  Slider,
-  TextField,
-  IconButton,
   Dialog,
-  DialogActions,
+  DialogTitle,
   DialogContent,
   DialogContentText,
-  DialogTitle,
-  Alert,
+  DialogActions,
   useTheme,
+  TextField,
 } from "@mui/material";
-import { TreeContext } from "../context/TreeContext";
 import AddIcon from "@mui/icons-material/Add";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
 import axios from "axios";
 import debounce from "lodash/debounce";
-
-const BandControl = ({ band, onEdit, onDelete, onSliderChange }) => {
-  const theme = useTheme();
-
-  return (
-    <Box
-      border={1}
-      borderRadius={2}
-      borderColor={theme.palette.primary.main}
-      p={2}
-      m={1}
-      bgcolor={theme.palette.background.paper}
-    >
-      <Box display="flex" justifyContent="space-between" alignItems="center">
-        <Typography variant="h6">{band.band}</Typography>
-        <Box>
-          <IconButton color="primary" onClick={() => onEdit(band)}>
-            <EditIcon />
-          </IconButton>
-          <IconButton color="secondary" onClick={() => onDelete(band)}>
-            <DeleteIcon />
-          </IconButton>
-        </Box>
-      </Box>
-      <Box>
-        <Typography>Frequency</Typography>
-        <Box display="flex" justifyContent="space-between">
-          <Slider
-            value={band.currentFrequency || band.frequency}
-            onChange={(e, value) =>
-              onSliderChange(band._id, "currentFrequency", value)
-            }
-            max={band.frequency}
-            aria-labelledby="frequency-slider"
-            sx={{ color: theme.palette.primary.main }}
-          />
-          <Typography>{band.currentFrequency || band.frequency} MHz</Typography>
-        </Box>
-      </Box>
-      <Box>
-        <Typography>Bandwidth</Typography>
-        <Box display="flex" justifyContent="space-between">
-          <Slider
-            value={band.currentBandwidth || band.bandwidth}
-            onChange={(e, value) =>
-              onSliderChange(band._id, "currentBandwidth", value)
-            }
-            max={band.bandwidth}
-            aria-labelledby="bandwidth-slider"
-            sx={{ color: theme.palette.primary.main }}
-          />
-          <Typography>{band.currentBandwidth || band.bandwidth} MHz</Typography>
-        </Box>
-      </Box>
-      <Box>
-        <Typography>Power</Typography>
-        <Box display="flex" justifyContent="space-between">
-          <Slider
-            value={band.currentPower || band.power}
-            onChange={(e, value) =>
-              onSliderChange(band._id, "currentPower", value)
-            }
-            max={band.power}
-            aria-labelledby="power-slider"
-            sx={{ color: theme.palette.primary.main }}
-          />
-          <Typography>{band.currentPower || band.power}</Typography>
-        </Box>
-      </Box>
-      <Box display="flex" justifyContent="center">
-        <Button
-          sx={{ backgroundColor: theme.palette.primary.main, color: "white" }}
-        >
-          Apply
-        </Button>
-      </Box>
-    </Box>
-  );
-};
+import { TreeContext } from "../context/TreeContext";
+import ConfigDialogs from "../components/ConfigDialogs";
+import ConfigList from "../components/ConfigList";
+import ChildLabels from "../components/ChildLabels";
 
 const Content = () => {
   const theme = useTheme();
   const { selectedNode } = useContext(TreeContext);
-  const [bands, setBands] = useState([]);
+  const [configs, setConfigs] = useState([]);
+  const [allBands, setAllBands] = useState([]);
+  const [childLabels, setChildLabels] = useState([]);
   const [dialogState, setDialogState] = useState({
-    addingBand: false,
-    editingBand: null,
-    deletingBand: null,
+    addingConfig: false,
+    editingConfig: null,
+    deletingConfig: null,
   });
-  const [editedBand, setEditedBand] = useState({
+  const [editedConfig, setEditedConfig] = useState({
     band: "",
-    frequency: 0,
-    bandwidth: 0,
-    power: 0,
+    bandId: "",
+    minFrequency: 0,
+    maxFrequency: 0,
     currentFrequency: 0,
     currentBandwidth: 0,
     currentPower: 0,
   });
-  const [newBand, setNewBand] = useState({
+  const [newConfig, setNewConfig] = useState({
     band: "",
-    frequency: 0,
+    bandId: "",
+    minFrequency: 0,
+    maxFrequency: 0,
     currentFrequency: 0,
-    bandwidth: 0,
     currentBandwidth: 0,
-    power: 0,
     currentPower: 0,
   });
 
+  const [deviceIP, setDeviceIP] = useState(""); // Trạng thái cho địa chỉ IP của thiết bị
+
   useEffect(() => {
+    const fetchAllBands = async () => {
+      try {
+        const response = await axios.get("http://localhost:3000/api/bands");
+        setAllBands(response.data);
+      } catch (error) {
+        console.error("Error fetching all bands:", error);
+      }
+    };
+
+    fetchAllBands();
+
     if (selectedNode) {
       const fetchConfigs = async () => {
         try {
           const response = await axios.get(
             `http://localhost:3000/api/configs/${selectedNode.id}`
           );
-          setBands(response.data);
+          setConfigs(response.data);
         } catch (error) {
           console.error("Error fetching configs from server:", error);
         }
       };
 
+      const fetchDeviceIP = async () => {
+        try {
+          const response = await axios.get(
+            `http://localhost:3000/api/devices/${selectedNode.id}`
+          );
+          setDeviceIP(response.data.deviceIP || ""); // Đặt giá trị deviceIP nếu tồn tại
+        } catch (error) {
+          console.error("Error fetching device IP:", error);
+          setDeviceIP("");
+        }
+      };
+
       fetchConfigs();
+      fetchDeviceIP(); // Fetch the IP address when a new node is selected
+
+      if (selectedNode.isFolder) {
+        setChildLabels(selectedNode.children);
+      }
+    } else {
+      setDeviceIP(""); // Đặt lại giá trị rỗng nếu không có node nào được chọn
+      setConfigs([]); // Đặt lại danh sách cấu hình nếu không có node nào được chọn
     }
   }, [selectedNode]);
 
-  const handleAddBand = () => {
+  const handleAddConfig = () => {
     if (selectedNode && !selectedNode.isFolder) {
-      setDialogState({ ...dialogState, addingBand: true });
+      setDialogState({ ...dialogState, addingConfig: true });
     }
   };
 
-  const handleEditBand = (band) => {
-    setDialogState({ ...dialogState, editingBand: band });
-    setEditedBand({
-      ...band,
-      currentFrequency: band.currentFrequency || 0,
-      currentBandwidth: band.currentBandwidth || 0,
-      currentPower: band.currentPower || 0,
+  const handleEditConfig = (config) => {
+    setDialogState({ ...dialogState, editingConfig: config });
+    setEditedConfig({
+      ...config,
+      bandId: config.bandId || "",
+      currentFrequency: config.currentFrequency || 0,
+      currentBandwidth: config.currentBandwidth || 0,
+      currentPower: config.currentPower || 0,
     });
   };
 
-  const handleDeleteBand = (band) => {
-    setDialogState({ ...dialogState, deletingBand: band });
+  const handleDeleteConfig = (config) => {
+    setDialogState({ ...dialogState, deletingConfig: config });
   };
 
-  const confirmAddBand = async () => {
+  const confirmAddConfig = async () => {
     if (!selectedNode) return;
-    const newBandWithDevice = {
-      ...newBand,
+    const newConfigWithDevice = {
+      ...newConfig,
       deviceId: selectedNode.id,
     };
 
     try {
       const response = await axios.post(
-        "http://localhost:3000/api/configs",
-        newBandWithDevice
+        "http://localhost:3000/api/device/:deviceId/config",
+        newConfigWithDevice
       );
-      setBands([...bands, response.data]);
-      setDialogState({ ...dialogState, addingBand: false });
-      setNewBand({ band: "", frequency: 0, bandwidth: 0, power: 0 });
+      setConfigs([...configs, response.data]);
+      setDialogState({ ...dialogState, addingConfig: false });
+      setNewConfig({
+        band: "",
+        bandId: "",
+        minFrequency: 0,
+        maxFrequency: 0,
+        currentFrequency: 0,
+        currentBandwidth: 0,
+        currentPower: 0,
+      });
     } catch (error) {
-      console.error("Error adding band:", error);
+      console.error("Error adding config:", error);
     }
   };
 
-  const confirmDeleteBand = async () => {
+  const confirmDeleteConfig = async () => {
     try {
       await axios.delete(
-        `http://localhost:3000/api/configs/${dialogState.deletingBand._id}`
+        `http://localhost:3000/api/config/${dialogState.deletingConfig._id}`
       );
-      setBands(
-        bands.filter((band) => band._id !== dialogState.deletingBand._id)
+      setConfigs(
+        configs.filter(
+          (config) => config._id !== dialogState.deletingConfig._id
+        )
       );
-      setDialogState({ ...dialogState, deletingBand: null });
+      setDialogState({ ...dialogState, deletingConfig: null });
     } catch (error) {
-      console.error("Error deleting band:", error);
+      console.error("Error deleting config:", error);
     }
   };
 
-  const handleSaveBand = async () => {
+  const handleSaveConfig = async () => {
     try {
       const response = await axios.put(
-        `http://localhost:3000/api/configs/${dialogState.editingBand._id}`,
-        editedBand
+        `http://localhost:3000/api/config/${dialogState.editingConfig._id}`,
+        editedConfig
       );
-      setBands(
-        bands.map((band) =>
-          band._id === dialogState.editingBand._id ? response.data : band
+      setConfigs(
+        configs.map((config) =>
+          config._id === dialogState.editingConfig._id ? response.data : config
         )
       );
-      setDialogState({ ...dialogState, editingBand: null });
+      setDialogState({ ...dialogState, editingConfig: null });
     } catch (error) {
-      console.error("Error saving band:", error);
+      console.error("Error saving config:", error);
+    }
+  };
+
+  const handleDeviceIPChange = (event) => {
+    setDeviceIP(event.target.value);
+  };
+
+  const updateDeviceIP = async () => {
+    if (!selectedNode) return;
+
+    try {
+      await axios.put(`http://localhost:3000/api/devices/${selectedNode.id}`, {
+        deviceIP: deviceIP,
+      });
+      console.log("Device IP updated successfully");
+    } catch (error) {
+      console.error("Error updating device IP:", error);
     }
   };
 
   const handleChange = (event) => {
     const { name, value } = event.target;
-    setEditedBand((prevState) => ({
+    setEditedConfig((prevState) => ({
       ...prevState,
       [name]: value,
     }));
   };
 
-  const handleNewBandChange = (event) => {
+  const handleNewConfigChange = (event) => {
     const { name, value } = event.target;
-    setNewBand((prevState) => ({
+    setNewConfig((prevState) => ({
       ...prevState,
       [name]: value,
     }));
   };
 
-  const debouncedUpdateBand = useCallback(
-    debounce(async (bandId, name, value) => {
+  const handleNewConfigSelectChange = (event) => {
+    const bandId = event.target.value;
+    const selectedBand = allBands.find((band) => band._id === bandId);
+
+    if (selectedBand) {
+      setNewConfig((prevState) => ({
+        ...prevState,
+        band: selectedBand.band,
+        bandId: bandId,
+        minFrequency: selectedBand.minFrequency,
+        maxFrequency: selectedBand.maxFrequency,
+      }));
+    }
+  };
+
+  const handleEditedConfigSelectChange = (event) => {
+    const bandId = event.target.value;
+    const selectedBand = allBands.find((band) => band._id === bandId);
+
+    if (selectedBand) {
+      setEditedConfig((prevState) => ({
+        ...prevState,
+        band: selectedBand.band,
+        bandId: bandId,
+        minFrequency: selectedBand.minFrequency,
+        maxFrequency: selectedBand.maxFrequency,
+      }));
+    }
+  };
+
+  const debouncedUpdateConfig = useCallback(
+    debounce(async (configId, name, value) => {
       try {
-        await axios.put(`http://localhost:3000/api/configs/${bandId}`, {
+        await axios.put(`http://localhost:3000/api/config/${configId}`, {
           [name]: value,
         });
       } catch (error) {
-        console.error("Error updating band:", error);
+        console.error("Error updating config:", error);
       }
     }, 500),
     []
   );
 
-  const handleSliderChange = (bandId, name, value) => {
-    setBands((prevBands) =>
-      prevBands.map((band) =>
-        band._id === bandId ? { ...band, [name]: value } : band
+  const handleSliderChange = (configId, name, value) => {
+    setConfigs((prevConfigs) =>
+      prevConfigs.map((config) =>
+        config._id === configId ? { ...config, [name]: value } : config
       )
     );
-    debouncedUpdateBand(bandId, name, value);
+    debouncedUpdateConfig(configId, name, value);
+  };
+
+  const handleApplyAll = async () => {
+    if (!selectedNode) return;
+
+    try {
+      // Call the API to apply all configs
+      const response = await axios.post(
+        `http://localhost:3000/api/device/${selectedNode.id}/apply`
+      );
+
+      // Show a success message
+      console.log("All configurations applied successfully:", response.data);
+    } catch (error) {
+      console.error("Error applying all configurations:", error);
+    }
   };
 
   return (
@@ -266,269 +293,125 @@ const Content = () => {
           overflowY: "auto",
         }}
       >
-        <Typography variant="h4" align="center" gutterBottom>
+        <Typography variant="h2" align="center" gutterBottom>
           SMART CONFIGURATION MAC-SW
         </Typography>
         {selectedNode && (
-          <Typography variant="h6" align="center" gutterBottom>
+          <Typography variant="h3" align="center" gutterBottom>
             Selected: {selectedNode.label}
           </Typography>
         )}
-        <Typography variant="h6" align="center" gutterBottom>
-          Total Configs: {bands.length}
-        </Typography>
         {selectedNode && selectedNode.isFolder && (
-          <Alert severity="warning" sx={{ marginBottom: 2 }}>
-            Cannot add configuration to a folder
-          </Alert>
+          <ChildLabels children={childLabels} />
         )}
+
         <Box display="flex" justifyContent="space-between" mb={2}>
           {!selectedNode?.isFolder && (
-            <Box
-              display="flex"
-              justifyContent="space-between"
-              alignItems="center"
-              width="100%"
-            >
-              <Box>
-                <Button
-                  sx={{
-                    backgroundColor: theme.palette.primary.main,
-                    color: "white",
-                  }}
-                >
-                  <Typography>Apply all</Typography>
-                </Button>
+            <Box width="100%">
+              <Typography variant="h3" align="center" gutterBottom>
+                Total Configs: {configs.length}
+              </Typography>
+              <Box
+                width="30%"
+                display="flex"
+                alignItems="center"
+                marginBottom={3}
+              >
+                <TextField
+                  margin="dense"
+                  label="Device IP"
+                  fullWidth
+                  variant="outlined"
+                  value={deviceIP || ""}
+                  onChange={handleDeviceIPChange}
+                />
+                <Box marginLeft={3}>
+                  <Button
+                    sx={{
+                      backgroundColor: theme.palette.primary.main,
+                      color: "white",
+                    }}
+                    onClick={updateDeviceIP}
+                  >
+                    <Typography>Update</Typography>
+                  </Button>
+                </Box>
               </Box>
-              <Box>
-                <Button
-                  sx={{
-                    backgroundColor: theme.palette.primary.main,
-                    color: "white",
-                  }}
-                  onClick={handleAddBand}
-                >
-                  <AddIcon />
-                  <Typography>Add Config</Typography>
-                </Button>
+              <Box
+                display="flex"
+                justifyContent="space-between"
+                alignItems="center"
+                width="100%"
+              >
+                <Box>
+                  <Button
+                    onClick={handleApplyAll} // Gọi hàm handleApplyAll khi nhấn nút
+                    sx={{
+                      backgroundColor: theme.palette.primary.main,
+                      color: "white",
+                    }}
+                  >
+                    <Typography>Apply all</Typography>
+                  </Button>
+                </Box>
+                <Box>
+                  <Button
+                    sx={{
+                      backgroundColor: theme.palette.primary.main,
+                      color: "white",
+                    }}
+                    onClick={handleAddConfig}
+                  >
+                    <AddIcon />
+                    <Typography>Add Config</Typography>
+                  </Button>
+                </Box>
               </Box>
             </Box>
           )}
         </Box>
 
-        <Grid container spacing={2}>
-          {bands.map((band) => (
-            <Grid item xs={12} md={6} key={band._id}>
-              <BandControl
-                band={band}
-                onEdit={handleEditBand}
-                onDelete={handleDeleteBand}
-                onSliderChange={handleSliderChange}
-              />
-            </Grid>
-          ))}
-        </Grid>
+        <ConfigList
+          configs={configs}
+          onEdit={handleEditConfig}
+          onDelete={handleDeleteConfig}
+          onSliderChange={handleSliderChange}
+          // onApply={handleApply} // Thêm hàm xử lý cho nút Apply
+        />
+
+        <ConfigDialogs
+          dialogState={dialogState.addingConfig}
+          allBands={allBands}
+          configData={newConfig}
+          handleSelectChange={handleNewConfigSelectChange}
+          handleInputChange={handleNewConfigChange}
+          onClose={() =>
+            setDialogState({ ...dialogState, addingConfig: false })
+          }
+          onSubmit={confirmAddConfig}
+          title="Add Config"
+          actionButtonLabel="Add"
+        />
+
+        <ConfigDialogs
+          dialogState={dialogState.editingConfig}
+          allBands={allBands}
+          configData={editedConfig}
+          handleSelectChange={handleEditedConfigSelectChange}
+          handleInputChange={handleChange}
+          onClose={() =>
+            setDialogState({ ...dialogState, editingConfig: null })
+          }
+          onSubmit={handleSaveConfig}
+          title="Edit Config"
+          actionButtonLabel="Save"
+        />
+
         <Dialog
-          open={dialogState.addingBand}
-          onClose={() => setDialogState({ ...dialogState, addingBand: false })}
-        >
-          <DialogTitle>Add Config</DialogTitle>
-          <DialogContent>
-            <DialogContentText>
-              Add the new config parameters.
-            </DialogContentText>
-            <TextField
-              margin="dense"
-              label="Band Label"
-              type="text"
-              fullWidth
-              variant="outlined"
-              name="band"
-              value={newBand.band}
-              onChange={handleNewBandChange}
-            />
-            <Box display="flex" gap={2} mb={2}>
-              <TextField
-                margin="dense"
-                label="Current Frequency"
-                type="number"
-                fullWidth
-                variant="outlined"
-                name="currentFrequency"
-                value={newBand.currentFrequency}
-                onChange={handleNewBandChange}
-              />
-              <TextField
-                margin="dense"
-                label="Frequency"
-                type="number"
-                fullWidth
-                variant="outlined"
-                name="frequency"
-                value={newBand.frequency}
-                onChange={handleNewBandChange}
-              />
-            </Box>
-            <Box display="flex" gap={2} mb={2}>
-              <TextField
-                margin="dense"
-                label="Current Bandwidth"
-                type="number"
-                fullWidth
-                variant="outlined"
-                name="currentBandwidth"
-                value={newBand.currentBandwidth}
-                onChange={handleNewBandChange}
-              />
-              <TextField
-                margin="dense"
-                label="Bandwidth"
-                type="number"
-                fullWidth
-                variant="outlined"
-                name="bandwidth"
-                value={newBand.bandwidth}
-                onChange={handleNewBandChange}
-              />
-            </Box>
-            <Box display="flex" gap={2} mb={2}>
-              <TextField
-                margin="dense"
-                label="Current Power"
-                type="number"
-                fullWidth
-                variant="outlined"
-                name="currentPower"
-                value={newBand.currentPower}
-                onChange={handleNewBandChange}
-              />
-              <TextField
-                margin="dense"
-                label="Power"
-                type="number"
-                fullWidth
-                variant="outlined"
-                name="power"
-                value={newBand.power}
-                onChange={handleNewBandChange}
-              />
-            </Box>
-          </DialogContent>
-          <DialogActions>
-            <Button
-              onClick={() =>
-                setDialogState({ ...dialogState, addingBand: false })
-              }
-              color="primary"
-            >
-              Cancel
-            </Button>
-            <Button onClick={confirmAddBand} color="primary">
-              Add
-            </Button>
-          </DialogActions>
-        </Dialog>
-        <Dialog
-          open={!!dialogState.editingBand}
-          onClose={() => setDialogState({ ...dialogState, editingBand: null })}
-        >
-          <DialogTitle>Edit Config</DialogTitle>
-          <DialogContent>
-            <DialogContentText>Edit the config parameters.</DialogContentText>
-            <TextField
-              margin="dense"
-              label="Band Label"
-              type="text"
-              fullWidth
-              variant="outlined"
-              name="band"
-              value={editedBand.band}
-              onChange={handleChange}
-            />
-            <Box display="flex" gap={2} mb={2}>
-              <TextField
-                margin="dense"
-                label="Current Frequency"
-                type="number"
-                fullWidth
-                variant="outlined"
-                name="currentFrequency"
-                value={editedBand.currentFrequency}
-                onChange={handleChange}
-              />
-              <TextField
-                margin="dense"
-                label="Frequency"
-                type="number"
-                fullWidth
-                variant="outlined"
-                name="frequency"
-                value={editedBand.frequency}
-                onChange={handleChange}
-              />
-            </Box>
-            <Box display="flex" gap={2} mb={2}>
-              <TextField
-                margin="dense"
-                label="Current Bandwidth"
-                type="number"
-                fullWidth
-                variant="outlined"
-                name="currentBandwidth"
-                value={editedBand.currentBandwidth}
-                onChange={handleChange}
-              />
-              <TextField
-                margin="dense"
-                label="Bandwidth"
-                type="number"
-                fullWidth
-                variant="outlined"
-                name="bandwidth"
-                value={editedBand.bandwidth}
-                onChange={handleChange}
-              />
-            </Box>
-            <Box display="flex" gap={2} mb={2}>
-              <TextField
-                margin="dense"
-                label="Current Power"
-                type="number"
-                fullWidth
-                variant="outlined"
-                name="currentPower"
-                value={editedBand.currentPower}
-                onChange={handleChange}
-              />
-              <TextField
-                margin="dense"
-                label="Power"
-                type="number"
-                fullWidth
-                variant="outlined"
-                name="power"
-                value={editedBand.power}
-                onChange={handleChange}
-              />
-            </Box>
-          </DialogContent>
-          <DialogActions>
-            <Button
-              onClick={() =>
-                setDialogState({ ...dialogState, editingBand: null })
-              }
-              color="primary"
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleSaveBand} color="primary">
-              Save
-            </Button>
-          </DialogActions>
-        </Dialog>
-        <Dialog
-          open={!!dialogState.deletingBand}
-          onClose={() => setDialogState({ ...dialogState, deletingBand: null })}
+          open={!!dialogState.deletingConfig}
+          onClose={() =>
+            setDialogState({ ...dialogState, deletingConfig: null })
+          }
         >
           <DialogTitle>Confirm Delete</DialogTitle>
           <DialogContent>
@@ -539,13 +422,13 @@ const Content = () => {
           <DialogActions>
             <Button
               onClick={() =>
-                setDialogState({ ...dialogState, deletingBand: null })
+                setDialogState({ ...dialogState, deletingConfig: null })
               }
               color="primary"
             >
               Cancel
             </Button>
-            <Button onClick={confirmDeleteBand} color="primary">
+            <Button onClick={confirmDeleteConfig} color="primary">
               Delete
             </Button>
           </DialogActions>
